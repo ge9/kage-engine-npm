@@ -1,0 +1,25 @@
+{
+  "name": "@ge9/kage-engine-2",
+  "version": "0.0.1",
+  "description": "An engine that generates glyph image file from KAGE data",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ge9/kage-engine-npm.git"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/ge9/kage-engine-npm/issues"
+  },
+  "homepage": "https://github.com/ge9/kage-engine-npm#readme",
+  "devDependencies": {
+    "rollup": "^2.58.3"
+  }
+}
