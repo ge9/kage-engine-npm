@@ -40,4 +40,7 @@ export declare class Polygon {
     rotate180(): this;
     rotate270(): this;
     floor(): this;
+
+    get_sub_path_svg(): string;//added to use bezier curve in kage-editor
+
 }
