@@ -21,5 +21,6 @@
   "homepage": "https://github.com/ge9/kage-engine-npm#readme",
   "devDependencies": {
     "rollup": "^2.58.3"
-  }
+  },
+  "typings":"typings/index.d.ts"
 }
