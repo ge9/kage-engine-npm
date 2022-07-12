@@ -1,4 +1,4 @@
-export { Kage, KShotai } from "./kage";
+export { Kage } from "./kage";
 export { Polygons } from "./polygons";
 export { Buhin } from "./buhin";
 export default Kage;
