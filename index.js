@@ -1,4 +1,4 @@
-export { Kage, FONTTYPE } from "./lib/kage.js";
+export { Kage, FONTTYPE, KShotai } from "./lib/kage.js";
 export { Polygons } from "./lib/polygons.js";
 //export const kage_export = {Kage: Kage, FONTTYPE: FONTTYPE, Polygons: Polygons};
 // Object.defineProperty(exports, "__esModule", { value: true });
