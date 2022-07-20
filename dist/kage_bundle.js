@@ -231,43 +231,43 @@ var kage_export = (function (exports) {
 
   const bez_cir = 4*(Math.sqrt(2)-1)/3;
   //a constant for drawing circles with Bezier curves
-
-  //width functions (using circle)
+  const CURVE_THIN = 0.222;
+  //width functions (using the first quadrant of circle of radius p, centered at (1-p, 1-p) )
   function widfun(t, x1, y1, x2, y2, wid){
     const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    const p = 1 + (100/len);
-    return (  (Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t))-(p-1))*0.778+0.222  )*wid;
+    const p = 1 + Math.sqrt(100/len);
+    return (  (Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t))-(p-1))*(1-CURVE_THIN)+CURVE_THIN  )*wid;
   }
 
   function widfun_d(t, x1, y1, x2, y2, wid){
     const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    const p = 1 + (100/len);
-    return wid*0.778*0.5*2*(p-t) / Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t));
+    const p = 1 + Math.sqrt(100/len);
+    return wid*(1-CURVE_THIN)*0.5*2*(p-t) / Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t));
   }
 
   function widfun_stop(t, x1, y1, x2, y2, wid){
     const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    const p = 1 + (100/len);
-    return (  (Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t))-(p-1))*0.878+0.222  )*wid;
+    const p = 1 + Math.sqrt(100/len);
+    return (  (Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t))-(p-1))*(1.10-CURVE_THIN)+CURVE_THIN  )*wid;
   }
 
   function widfun_stop_d(t, x1, y1, x2, y2, wid){
     const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    const p = 1 + (100/len);
-    return wid*0.878*0.5*2*(p-t) / Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t));
+    const p = 1 + Math.sqrt(100/len);
+    return wid*(1.10-CURVE_THIN)*0.5*2*(p-t) / Math.sqrt(p*p+(p-1)*(p-1)-(p-t)*(p-t));
   }
 
   //fat version (used in cubic bezier)
   function widfun_fat(t, x1, y1, x2, y2, wid){
     const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    const p = 1+ (40/len);
-    return (  (Math.sqrt(p*p + (p-1)*(p-1) - (p-t)*(p-t)) - (p-1)  )*0.778+0.222  )*wid;
+    const p = 1+ Math.sqrt(40/len);
+    return (  (Math.sqrt(p*p + (p-1)*(p-1) - (p-t)*(p-t)) - (p-1)  )*(1-CURVE_THIN)+CURVE_THIN  )*wid;
   }
 
   function widfun_fat_d(t, x1, y1, x2, y2, wid){
     const len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-    const p = 1+ (40/len);
-    return wid*0.778*0.5*2*(p-t) / Math.sqrt(p*p + (p-1)*(p-1) - (p-t)*(p-t));
+    const p = 1+ Math.sqrt(40/len);
+    return wid*(1-CURVE_THIN)*0.5*2*(p-t) / Math.sqrt(p*p + (p-1)*(p-1) - (p-t)*(p-t));
   }
 
   function get_dir(x, y){
@@ -353,22 +353,15 @@ var kage_export = (function (exports) {
   }
 
   function get_rad(x, y) {
-    var rad;
-    if (x == 0) {
-      if (y > 0) {
-        rad = Math.PI / 2;
-      } else {
-        rad = -Math.PI / 2;
-      }
-    } else {
-      rad = Math.atan(y / x);
-      if (x < 0) { rad += Math.PI; }
-    }
-    return rad;
+    return Math.atan2(y,x);
   }
 
   function rad_to_vector(rad) {
     return [Math.cos(rad), Math.sin(rad)];
+  }
+
+  function rad_to_dir(rad) {
+    return {sin:  Math.sin(rad), cos: Math.cos(rad)};
   }
 
   function stretch_bezier_end(bez, t){
@@ -1118,8 +1111,11 @@ var kage_export = (function (exports) {
       const y_fun = t => ((1.0 - t) * (1.0 - t) * y1 + 2.0 * t * (1.0 - t) * sy + t * t * y2);
       const dx_fun = t => (x1 - 2.0 * sx + x2) * 2.0 * t + (-2.0 * x1 + 2.0 * sx);
       const dy_fun = t => (y1 - 2.0 * sy + y2) * 2.0 * t + (-2.0 * y1 + 2.0 * sy);
-      const rad_begin = Math.atan2(sy-y1, sx-x1);
-      var rad_end = Math.atan2(y2-sy, x2-sx);
+      const cent_x = (x1 + 4*sx + x2) / 6;
+      const cent_y = (y1 + 4*sy + y2) / 6;
+      
+      const rad_begin = Math.atan2(cent_y-y1, cent_x-x1);
+      var rad_end   =   Math.atan2(y2-cent_y, x2-cent_x);
       if(rad_end - rad_begin > Math.PI) {
         rad_end -= Math.PI*2;
       }else if(rad_begin - rad_end > Math.PI){
@@ -1337,7 +1333,25 @@ var kage_export = (function (exports) {
       poly.push2(p.vec(kMinWidthT+kagekWidth,kagekMinWidthY));
       poly.push2(p.vec(kMinWidthT,kMinWidthT*0.8), 2);
       poly.push2(p.vec(0,kMinWidthT*1.2), 2);
-      poly.push2(p.vec(-kMinWidthT,kMinWidthT*1.3));
+      poly.push2(p.vec(-kMinWidthT*0.9,kMinWidthT*1.2));
+      //poly.push2(p.vec(-kMinWidthT,kMinWidthT*1.3));
+      this.polygons.push(poly);
+    }
+
+    drawUpperRightCorner2(x1, y1, kMinWidthT, kagekMinWidthY, kagekWidth) {
+      var p = new PointMaker(x1, y1);
+      var poly = new Polygon();
+      poly.push2(p.vec(-kMinWidthT,-kagekMinWidthY));
+      poly.push2(p.vec(-kMinWidthT*1.1,-kagekMinWidthY));
+
+      poly.push2(p.vec(0,-kagekMinWidthY - kagekWidth));
+      //poly.push2(p.vec(-kMinWidthT*0.1,-kagekMinWidthY - kagekWidth*1.1));
+      
+      poly.push2(p.vec(kMinWidthT+kagekWidth,kagekMinWidthY));
+      poly.push2(p.vec(kMinWidthT,kMinWidthT*0.8), 2);
+      poly.push2(p.vec(0,kMinWidthT*1.2), 2);
+      poly.push2(p.vec(-kMinWidthT*0.9,kMinWidthT*1.2));
+      //poly.push2(p.vec(-kMinWidthT,kMinWidthT*1.3));
       this.polygons.push(poly);
     }
     
@@ -1352,62 +1366,72 @@ var kage_export = (function (exports) {
       this.polygons.push(poly);
     }
 
-    drawOpenBegin_straight(x1, y1, kMinWidthT, kagekMinWidthY, dir) {
-      const rad_offset = Math.atan(kagekMinWidthY*0.5/kMinWidthT);
+    drawOpenBegin_straight(x1, y1, kMinWidthT, kagekMinWidthY, rad) {
+      const dir=rad_to_dir((rad+Math.PI*0.621)*0.5);
+      //const rad_offset = Math.atan(kagekMinWidthY*0.5/kMinWidthT);
       //const rad_offset = (0.1*Math.PI);
+      const rad_diff = (rad - Math.PI*0.621) * 0.5;
       var poly = new Polygon();
+      let p0 = new PointMaker(x1, y1, rad_to_dir(rad), kMinWidthT);
+      poly.push2(p0.vec(0.5, 1));
+      poly.push2(p0.vec(Math.sin(rad_diff), 1));
       let p1 = new PointMaker(x1, y1, dir);
-      let[x, y] = p1.vec(kagekMinWidthY*0.5, -kMinWidthT);
-      const offs_sin = Math.sin(rad_offset);
-      const offs_cos = Math.cos(rad_offset);
+      let[x, y] = p1.vec(0, -kMinWidthT);
+      //const offs_sin = Math.sin(rad_offset);
+      //const offs_cos = Math.cos(rad_offset);
       //let[x, y] = p1.vec(kMinWidthT*offs_sin/offs_cos, -kMinWidthT);
-      const new_dir = {sin: dir.sin*offs_cos+dir.cos*offs_sin, cos: dir.cos*offs_cos-dir.sin*offs_sin};
-      let p2 = new PointMaker(x, y, new_dir, kMinWidthT);
-      poly.push2(p2.vec(0, 0));
+      //const new_dir = {sin: dir.sin*offs_cos+dir.cos*offs_sin, cos: dir.cos*offs_cos-dir.sin*offs_sin};
+      let p2 = new PointMaker(x, y, dir, kMinWidthT*0.876);
+       poly.push2(p2.vec(0, 0));
       poly.push2(p2.vec(0, -1.4), 2);
-      poly.push2(p2.vec(0.6, -1.4), 2);
-      poly.push2(p2.vec(2.0, 1.0));
+      poly.push2(p2.vec(0.8, -1.4), 2);
+      poly.push2(p2.vec(1.5, 0.5));
       this.polygons.push(poly);
     }
 
-    drawOpenBegin_curve_down2(x1, y1, dir, kMinWidthT, rad_offset){
+    drawOpenBegin_curve_down2(x1, y1, rad, kMinWidthT, rad_offset, kagekMinWidthY){
+      
       var poly = new Polygon();
+      const dir = rad_to_dir(rad);
       let p1 = new PointMaker(x1, y1, dir);
-      poly.push2(p1.vec(0, kMinWidthT));
+      let [xx, yy] = p1.vec(-kagekMinWidthY*0.79, 0);
+      let p0 = new PointMaker(xx, yy, dir, kMinWidthT);
+      let [x0, y0 ] = p1.vec(0, kMinWidthT);
+      poly.push(x0, y0);
 
       let p2 = new PointMaker();
-      const offs_sin = Math.sin(rad_offset);
-      const offs_cos = Math.cos(rad_offset);
-      p2.setscale(kMinWidthT);
-      p2.setdir({sin: dir.sin*offs_cos+dir.cos*offs_sin, cos: dir.cos*offs_cos-dir.sin*offs_sin});
-      if(rad_offset>0){
-        poly.push2(p1.vec(-(offs_sin/offs_cos)*2*kMinWidthT, kMinWidthT));
-        let[x, y] = p1.vec(0, -kMinWidthT);
-        poly.push(x, y);
-        p2.setpos(x, y);
-        let[x2, y2] = p2.vec(0, -rad_offset);
-        p2.setpos(x2, y2);
-      }else {
-        let[x, y] = p1.vec(0+2*kMinWidthT*offs_sin, kMinWidthT-2*kMinWidthT*offs_cos);
+      p2.setscale(kMinWidthT*0.876);
+      const offset_limit = Math.atan2(kagekMinWidthY*0.79 , kMinWidthT);
+      rad_offset = Math.min(rad_offset, offset_limit);
+      p2.setdir(rad_to_dir(rad+rad_offset));
+      
+      if (rad_offset < -offset_limit){
+        let p3 = new PointMaker(x0, y0, rad_to_dir(rad));
+        let [x3, y3] = p3.vec(kMinWidthT * 2 * Math.sin(rad_offset), -kMinWidthT * 2);
+        p2.setpos(x3, y3);
+      }else
+      {
+        poly.push2(p0.vec(-Math.sin(rad_offset), 1));
+        let[x, y] = p0.vec(Math.sin(rad_offset), -1);
         p2.setpos(x, y);
       }
-
       poly.push2(p2.vec(0, 0));
-      poly.push2(p2.vec(0, -0.8), 2);
-      poly.push2(p2.vec(0.6, -0.8), 2);
+      poly.push2(p2.vec(0, -1.0), 2);
+      poly.push2(p2.vec(0.6, -1.0), 2);
       poly.push2(p2.vec(1.8, 1.0));
       this.polygons.push(poly);
     }
 
-    drawOpenBegin_curve_down(x1, y1, dir, kMinWidthT, kagekMinWidthY){
-      const rad = Math.atan2(Math.abs(dir.sin), Math.abs(dir.cos));
+    drawOpenBegin_curve_down(x1, y1, rad, kMinWidthT, kagekMinWidthY){
       var rad_offset;
+      /*
       if(rad > Math.PI * 0.2){//36 degrees
         rad_offset = (0.1*Math.PI)*(rad-Math.PI * 0.2)/(Math.PI*0.3);
-      }else {
+      }else{
         rad_offset = (-0.25*Math.PI)*(Math.PI*0.2-rad)/(Math.PI*0.2);
-      }
-      this.drawOpenBegin_curve_down2(x1, y1, dir, kMinWidthT, rad_offset);
+      }*/
+      rad_offset = (Math.PI*0.621 - rad)*0.5;
+      this.drawOpenBegin_curve_down2(x1, y1, rad, kMinWidthT, rad_offset, kagekMinWidthY);
     }
 
     drawOpenBegin_curve_up(x1, y1, dir, kMinWidthT, kagekMinWidthY) {
@@ -1419,15 +1443,15 @@ var kage_export = (function (exports) {
       poly.push2(p1.vec((offs_sin/offs_cos)*2*kMinWidthT, -kMinWidthT));
 
       let p2 = new PointMaker();
-      p2.setscale(kMinWidthT);
+      p2.setscale(kMinWidthT*0.876);
       p2.setdir({sin: dir.sin*offs_cos+dir.cos*offs_sin, cos: dir.cos*offs_cos-dir.sin*offs_sin});
       let[x, y] = p1.vec(0, kMinWidthT);
       p2.setpos(x, y);
 
       poly.push2(p2.vec(0, 0));
-      poly.push2(p2.vec(0, 0.8), 2);
-      poly.push2(p2.vec(0.6, 0.8), 2);
-      poly.push2(p2.vec(1.8, -1.0));
+      poly.push2(p2.vec(0, 1.1), 2);
+      poly.push2(p2.vec(0.7, 1.1), 2);
+      poly.push2(p2.vec(1.4, -0.5));
       poly.reverse();
       this.polygons.push(poly);
     }
@@ -1544,13 +1568,15 @@ var kage_export = (function (exports) {
       var poly = new Polygon();
       var p = new PointMaker(x2, y2, dir);
       poly.push2(p.vec(kMinWidthT*0.7,  - kMinWidthT*0.7));
-      poly.push2(p.vec(0, - kMinWidthT),2);
-      poly.push2(p.vec(kMinWidthT*0.3, - kMinWidthT - length_param/2), 2);
-      poly.push2(p.vec(kMinWidthT*0.5, - kMinWidthT - length_param));
+      poly.push2(p.vec(kMinWidthT*0.22, - kMinWidthT),2);
+      poly.push2(p.vec(kMinWidthT*0.167, - kMinWidthT - length_param*0.05),2);
+      poly.push2(p.vec(kMinWidthT*0.181, - kMinWidthT - length_param*0.15));
+      poly.push2(p.vec(kMinWidthT*0.3, - kMinWidthT - length_param));
       poly.push2(p.vec(0,  - kMinWidthT - length_param));
-      poly.push2(p.vec( - kMinWidthT*0.6, - kMinWidthT - length_param/4), 2);
-      poly.push2(p.vec( - kMinWidthT*1.8, - kMinWidthT), 2);
-      poly.push2(p.vec( - kMinWidthT*2.2, - kMinWidthT));
+      poly.push2(p.vec( - kMinWidthT*0.75, - kMinWidthT - length_param/4));
+      poly.push2(p.vec( - kMinWidthT*0.875, - kMinWidthT - length_param/8), 2);
+      poly.push2(p.vec( - kMinWidthT*1.25, - kMinWidthT), 2);
+      poly.push2(p.vec( - kMinWidthT*1.6, - kMinWidthT));
       
       poly.reverse(); // for fill-rule
       this.polygons.push(poly);
@@ -1950,6 +1976,7 @@ var kage_export = (function (exports) {
 
   class Mincho {
     constructor(size) {
+      //if (!size) size=2.1;
       this.kRate = 50;
       if (size == 1) {
         this.kMinWidthY = 1.2;
@@ -2015,8 +2042,8 @@ var kage_export = (function (exports) {
         this.kAdjustKakatoRangeY = ([size, size * 5 + 3, size * 9 + 5, size * 12 + 6]); // 3 steps of checking
         this.kAdjustKakatoStep = 3; // number of steps
 
-        this.kAdjustUrokoX = ([size * 8 + 4, size * 7 + 3.5, size * 6 + 3, size * 5 + 2.5]); // for UROKO adjustment 000,100,200,300
-        this.kAdjustUrokoY = ([size * 5 + 2, size * 4.8 + 1.5, size * 4.6 + 1, size * 4.4 + 0.5]); // for UROKO adjustment 000,100,200,300
+        this.kAdjustUrokoX = ([size * 9.5 + 4, size * 8 + 3.5, size * 6.5 + 3, size * 5 + 2.5]); // for UROKO adjustment 000,100,200,300
+        this.kAdjustUrokoY = ([size * 4.6 + 2, size * 4.4 + 1.5, size * 4.2 + 1, size * 4.0 + 0.5]); // for UROKO adjustment 000,100,200,300
         this.kAdjustUrokoLength = ([size * 7 + 7, size * 11 + 11, size * 15 + 15]); // length for checking
         this.kAdjustUrokoLengthStep = 3; // number of steps
         this.kAdjustUrokoLine = ([size * 7 + 7, size * 9 + 8, size * 11 + 9]); // check for crossing. corresponds to length
@@ -2063,11 +2090,26 @@ var kage_export = (function (exports) {
       }
       return cv.getPolygons();
     }
-
+    getPolygonsSeparated(strokesArrays) {
+      return strokesArrays.map((glyphData, index) => {
+        const cp = strokesArrays.slice();
+        cp.splice(index,1);
+        const other_groups = cp.flat();
+       
+        var cv = new FontCanvas();
+        for (var i = 0; i < glyphData.length; i++) {
+          var tempdata = glyphData.slice();
+          tempdata.splice(i, 1);
+          this.drawAdjustedStroke(cv, glyphData[i], other_groups.concat(tempdata));
+        }
+        return cv.getPolygons();
+      });
+    }
     drawAdjustedStroke(cv, s, others) {//draw stroke on the canvas
-      const a1 = s[0];
-      const a2 = s[1];
-      const a3 = s[2];
+
+      const a1 = s[0] % 100;
+      const a2 = s[1] % 100;
+      const a3 = (s[2] == ENDTYPE.LOWER_LEFT_ZH_OLD || s[2] == ENDTYPE.LOWER_LEFT_ZH_NEW) ? s[2] : s[2] % 100;
       const x1 = s[3];
       const y1 = s[4];
       const x2 = s[5];
@@ -2086,6 +2128,8 @@ var kage_export = (function (exports) {
       const dir12 = get_dir(x2-x1, y2-y1);
       const dir23 = get_dir(x3-x2, y3-y2);
       const dir34 = get_dir(x4-x3, y4-y3);
+      const rad12 = get_rad(x2-x1, y2-y1);
+      const rad23 = get_rad(x3-x2, y3-y2);
       
       switch (a1) {
         case 0: {//rotate and flip
@@ -2136,7 +2180,7 @@ var kage_export = (function (exports) {
                 const new_x2 = x2 - this.kMage * (((this.kAdjustTateStep + 4) - param_tate) / (this.kAdjustTateStep + 4));
                 cv.drawQBezier(tx1, ty1, x2, y2,
                   new_x2, y2, width_func, t => 0);
-                const param_hane = this.adjustHaneParam(x2, y2, others);
+                const param_hane = this.adjustHaneParam(s, x2, y2, others);
                 cv.drawTurnLeft(new_x2, y2, kMinWidthT_m, this.kWidth * 4 * Math.min(1 - param_hane / 10, Math.pow(kMinWidthT_m / this.kMinWidthT, 3)));
                 poly_end = this.getEndOfLine(x1, y1, tx1, ty1, kMinWidthT_m);
                 break;
@@ -2212,7 +2256,7 @@ var kage_export = (function (exports) {
                 break;
               }
               default:
-                throw ("error: unknown end type at the straight line");
+                throw ("error: unknown end type at the straight line: "+a3);
             }
             //body
             poly_start.concat(poly_end);
@@ -2228,25 +2272,25 @@ var kage_export = (function (exports) {
           if (a2 == STARTTYPE.OPEN) {
             let [x1ext, y1ext] = moved_point(x1, y1, dir12, 1 * this.kMinWidthY * 0.5);
             if (y1ext <= y3) { //from up to bottom
-              cv.drawOpenBegin_curve_down(x1ext, y1ext, dir12, this.kMinWidthT, this.kMinWidthY);
+              cv.drawOpenBegin_curve_down(x1ext, y1ext, rad12, this.kMinWidthT, this.kMinWidthY);
             }
             else { //from bottom to up
               cv.drawOpenBegin_curve_up(x1ext, y1ext, dir12, this.kMinWidthT, this.kMinWidthY);
             }
           } else if (a2 == STARTTYPE.UPPER_RIGHT_CORNER) {
-            cv.drawUpperRightCorner(x1, y1, this.kMinWidthT, this.kMinWidthY, this.kWidth);
+            cv.drawUpperRightCorner2(x1, y1, this.kMinWidthT, this.kMinWidthY, this.kWidth);
           } else if (a2 == STARTTYPE.UPPER_LEFT_CORNER) {
             let [x1ext, y1ext] = moved_point(x1, y1, dir12, -this.kMinWidthY);
             cv.drawUpperLeftCorner(x1ext, y1ext, dir12, this.kMinWidthT);
           }
           //body
           const a2temp = (a2 == STARTTYPE.CONNECTING_V && this.adjustKirikuchiParam(s, others)) ? 100 + a2 : a2;
-          let [tan1, tan2] = this.minchoDrawCurve(x1, y1, x2, y2, x3, y3, a2temp, a3, cv);
+          this.minchoDrawCurve(x1, y1, x2, y2, x3, y3, a2temp, a3, cv);
           //tail
           switch (a3) {
             case ENDTYPE.TURN_LEFT: {
               let [tx1, ty1] = moved_point(x3, y3, dir23, -this.kMage);
-              const param_hane = this.adjustHaneParam(x3, y3, others);
+              const param_hane = this.adjustHaneParam(s, x3, y3, others);
               const width_func = (t) => { return this.kMinWidthT; };
               cv.drawQBezier(tx1, ty1, x3, y3, x3 - this.kMage, y3, width_func, t => 0);
               cv.drawTurnLeft(x3 - this.kMage, y3, this.kMinWidthT, this.kWidth * 4 * Math.min(1 - param_hane / 10, 1));
@@ -2258,8 +2302,8 @@ var kage_export = (function (exports) {
               break;
             }
             case ENDTYPE.STOP: {
-              let [x3ex, y3ex] = moved_point(x3, y3, dir23, -1 * this.kMinWidthT * 0.52);
-              cv.drawTailCircle_tan(x3ex, y3ex, dir23, this.kMinWidthT*1.1, tan1, tan2);
+              //let [x3ex, y3ex] = moved_point(x3, y3, dir23, -1 * this.kMinWidthT * 0.52);
+              //cv.drawTailCircle_tan(x3ex, y3ex, dir23, this.kMinWidthT*1.1, tan1, tan2);
               break;
             }
             default: {
@@ -2277,9 +2321,9 @@ var kage_export = (function (exports) {
         case STROKETYPE.BENDING: {
           //first line
           const param_tate = this.adjustTateParam(s, others);
-          const param_mage = this.adjustMageParam(s, others) / 2;
+          const param_mage = this.adjustMageParam(s, others);
           const kMinWidthT_m = this.kMinWidthT - param_tate / 2;
-          const kMinWidthT_mage = (this.kMinWidthT - param_mage / 2)*0.9;
+          const kMinWidthT_mage = this.kMinWidthT - param_mage / 2;
           let [tx1, ty1] = moved_point(x2, y2, dir12, -this.kMage);
           let [tx2, ty2] = moved_point(x2, y2, dir23, this.kMage);
           {
@@ -2397,7 +2441,7 @@ var kage_export = (function (exports) {
             let [x1ext, y1ext] = moved_point(x1, y1, dir12, 1 * this.kMinWidthY * 0.5);
 
             if (y1ext <= y4) { //from up to bottom
-              cv.drawOpenBegin_curve_down(x1ext, y1ext, dir12, this.kMinWidthT, this.kMinWidthY);
+              cv.drawOpenBegin_curve_down(x1ext, y1ext, rad12, this.kMinWidthT, this.kMinWidthY);
             }
             else { //from bottom to up
               cv.drawOpenBegin_curve_up(x1ext, y1ext, dir12, this.kMinWidthT, this.kMinWidthY);
@@ -2416,7 +2460,7 @@ var kage_export = (function (exports) {
               let [tx1, ty1] = moved_point(x4, y4, dir34, -this.kMage);
               const width_func = (t) => { return this.kMinWidthT; };
               cv.drawQBezier(tx1, ty1, x4, y4, x4 - this.kMage, y4, width_func, t => 0);
-              const param_hane = this.adjustHaneParam(x4, y4, others);
+              const param_hane = this.adjustHaneParam(s, x4, y4, others);
               cv.drawTurnLeft(x4 - this.kMage, y4, this.kMinWidthT, this.kWidth * 4 * Math.min(1 - param_hane / 10, 1));
               break;
             case ENDTYPE.TURN_UPWARDS:
@@ -2446,6 +2490,8 @@ var kage_export = (function (exports) {
           let poly_end = this.getEndOfLine(x1, y1, x2, y2, kMinWidthT_m);
           poly_start.concat(poly_end);
           cv.addPolygon(poly_start);
+          //semicircle for connection point
+          cv.drawTailCircle(x2, y2, rad_to_dir(rad23 + Math.PI), kMinWidthT_m);
           //curve
           const width_func = function (t) {
             //const deltad = Math.pow(1.0-t,0.7)*0.8+0.2;
@@ -2460,7 +2506,7 @@ var kage_export = (function (exports) {
           //kageCanvas[y2][x2] = 0;
           break;
         default:
-          throw "error: unknown stroke "+s;
+          throw "error: unknown stroke: "+s;
       }
     }
 
@@ -2497,12 +2543,14 @@ var kage_export = (function (exports) {
       var width_func;
       var width_func_d;
       let bez1, bez2;
-      
+      let thin_stop_param;
       if (a1 == STARTTYPE.THIN && a2 == ENDTYPE.STOP) { //stop
         //const slant_cos = 
-        width_func = t => widfun_stop(t, x1, y1, x2, y2, this.kMinWidthT);
-        width_func_d = t => widfun_stop_d(t, x1, y1, x2, y2, this.kMinWidthT);
-
+        const len=Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        thin_stop_param = (1 + (len-100)*0.0007);
+        
+        width_func = t => widfun_stop(t, x1, y1, x2, y2, this.kMinWidthT)*thin_stop_param;
+        width_func_d = t => widfun_stop_d(t, x1, y1, x2, y2, this.kMinWidthT)*thin_stop_param;
         [bez1, bez2] = Bezier.qBezier2(x1, y1, sx, sy, x2, y2, width_func, width_func_d);
       }
       else {
@@ -2512,6 +2560,7 @@ var kage_export = (function (exports) {
         }
         else if (a1 == STARTTYPE.CONNECTING_V && a2 == ENDTYPE.OPEN) { //未使用。さんずい用 (実験)
           width_func = t => {return ((1-t)*0.628+Math.pow((1-t),30)*0.600+0.222)*this.kMinWidthT};
+          //don't feel like 'export'ing CURVE_THIN for this experimental change...
           width_func_d = t => {return (-0.628-30*Math.pow((1-t),29)*0.600)*this.kMinWidthT};
         }
         else if (a1 == STARTTYPE.THIN) {
@@ -2534,25 +2583,42 @@ var kage_export = (function (exports) {
         var temp = bez1[0].concat();//deep copy
         let b2 = bezier_to_y(temp.reverse(), y1);
         if (b2) { bez1[0] = b2.reverse(); }
-      } else if (a1 == 22 && x1 != sx && y1 > y2) {
+      } else if (a1 == 22 && x1 != sx) {
+        let b1 = bezier_to_y(bez2[bez2.length - 1], y1);
+        if (b1) { bez2[bez2.length - 1] = b1; }
+      
+      /*} else if (a1 == 22 && x1 != sx && y1 > y2) {
         let b1 = bezier_to_y(bez2[bez2.length - 1], y1);
         if (b1) { bez2[bez2.length - 1] = b1; }
         var temp = bez1[0].concat();//deep copy
         let b2 = bezier_to_y(temp.reverse(), y1 + 1);//??
         if (b2) { bez1[0] = b2.reverse(); }
+        */
       }
       var poly = Bezier.bez_to_poly(bez1);
       poly.concat(Bezier.bez_to_poly(bez2));
+      if(a1==22){
+        poly.push(x1, y1);
+      }
       cv.addPolygon(poly);
 
-      const bez1e = bez1[bez1.length - 1][3];
-      const bez1c2 = bez1[bez1.length - 1][2];
-
-      const bez2s = bez2[0][0];
-      const bez2c1 = bez2[0][1];
-      const tan1 = [bez1e[0] - bez1c2[0], bez1e[1] - bez1c2[1]];
-      const tan2 = [bez2s[0] - bez2c1[0], bez2s[1] - bez2c1[1]];
-      return [tan1, tan2];
+      if(a2 == ENDTYPE.STOP){
+        if(a1 == STARTTYPE.THIN){
+          const bez1e = bez1[bez1.length - 1][3];
+        const bez1c2 = bez1[bez1.length - 1][2];
+        const bez2s = bez2[0][0];
+        const bez2c1 = bez2[0][1];
+        const tan1 = [bez1e[0] - bez1c2[0], bez1e[1] - bez1c2[1]];
+        const tan2 = [bez2s[0] - bez2c1[0], bez2s[1] - bez2c1[1]];
+        const cent_x = (x1 + 4*sx + x2) / 6;
+        const cent_y = (y1 + 4*sy + y2) / 6;
+        var rad_end = get_dir(x2-cent_x, y2-cent_y);
+         cv.drawTailCircle_tan(x2, y2, rad_end, this.kMinWidthT*1.1*thin_stop_param, tan1, tan2);
+        }else {
+          const enddir = get_dir(x2-sx, y2-sy);
+          cv.drawTailCircle(x2, y2, enddir, this.kMinWidthT);
+        }
+      }
     }
 
     minchoDrawBezier(x1pre, y1pre, sx1, sy1, sx2, sy2, x2pre, y2pre, a1, a2, cv) {
@@ -2590,7 +2656,7 @@ var kage_export = (function (exports) {
       let bez1, bez2;
       
       if (a1 == STARTTYPE.THIN && a2 == ENDTYPE.STOP) { //stop
-              width_func = t => widfun_stop(t, x1, y1, x2, y2, this.kMinWidthT);
+        width_func = t => widfun_stop(t, x1, y1, x2, y2, this.kMinWidthT);
         width_func_d = t => widfun_stop_d(t, x1, y1, x2, y2, this.kMinWidthT);
 
         [bez1, bez2] = Bezier.cBezier(x1, y1, sx1, sy1, sx2, sy2, x2, y2, width_func, width_func_d);
@@ -2628,7 +2694,7 @@ var kage_export = (function (exports) {
         let b1 = bezier_to_y(bez2[bez2.length - 1], y1);
         if (b1) { bez2[bez2.length - 1] = b1; }
         var temp = bez1[0];
-        let b2 = bezier_to_y(temp.reverse(), y1 + 1);
+        let b2 = bezier_to_y(temp.reverse(), y1 + 1);//" + 1" ??
         if (b2) { bez1[0] = b2.reverse(); }
       }
       var poly = Bezier.bez_to_poly(bez1);
@@ -2646,14 +2712,15 @@ var kage_export = (function (exports) {
     }
 
     getStartOfVLine(x1, y1, x2, y2, a1, kMinWidthT, cv) {
+      const rad = get_rad(x2 - x1, y2 - y1);
       const dir = get_dir(x2 - x1, y2 - y1);
       var poly_start = new Polygon(2);
       if (dir.cos==0) {//vertical
         var left1, right1;
         switch (a1) {
           case 0:
-            right1 = this.kMinWidthY / 2;
-            left1 = -this.kMinWidthY / 2;
+            right1 = -this.kMinWidthT * 0.5;
+            left1 =  -this.kMinWidthT * 1.0;
             break;
           case 12:
             right1 = this.kMinWidthY + kMinWidthT;
@@ -2676,17 +2743,17 @@ var kage_export = (function (exports) {
           cv.drawUpperRightCorner_straight_v(x1, y1, kMinWidthT, this.kMinWidthY, this.kWidth);
         }
         if (a1 == 0) { //beginning of the stroke
-          cv.drawOpenBegin_straight(x1, y1, kMinWidthT, this.kMinWidthY, dir);
+          cv.drawOpenBegin_straight(x1, y1, kMinWidthT, this.kMinWidthY, rad);
         }
       } else {
-        const rad = Math.atan((y2 - y1) / (x2 - x1));
-        const v = (x1 > x2) ? -1 : 1;
+        const v = 1; //previously (x1 > x2) ? -1 : 1;
         if (a1 == 22) {
           if (dir.sin==0) {//error
             console.log("error: connecting_v at the end of the horizontal line");
             poly_start = this.getStartOfLine(x1, y1, dir, kMinWidthT);
           } else {
-            poly_start.set(1, x1 + (kMinWidthT * v + 1) / Math.sin(rad), y1 + 1);//??
+            //poly_start.set(1, x1 + (kMinWidthT * v + 1) / Math.sin(rad), y1 + 1);//" + 1" ??
+            poly_start.set(1, x1 + (kMinWidthT * v) / Math.sin(rad), y1);
             poly_start.set(0, x1 - (kMinWidthT * v) / Math.sin(rad), y1);
           }
         } else if (a1 == 32) {
@@ -2701,8 +2768,8 @@ var kage_export = (function (exports) {
           var left1, right1;
           switch (a1) {
             case 0:
-              right1 = this.kMinWidthY * 0.5;
-              left1 = this.kMinWidthY * -0.5;
+              right1 = -this.kMinWidthT * 0.5;
+              left1 = -this.kMinWidthT * 1.0;
               break;
             case 12:
               right1 = this.kMinWidthY + kMinWidthT;
@@ -2721,7 +2788,7 @@ var kage_export = (function (exports) {
           cv.drawUpperRightCorner(x1, y1, kMinWidthT, this.kMinWidthY, this.kWidth);
         }
         if (a1 == 0) { //beginning of the stroke
-          cv.drawOpenBegin_straight(x1, y1, kMinWidthT, this.kMinWidthY, dir);
+          cv.drawOpenBegin_straight(x1, y1, kMinWidthT, this.kMinWidthY, rad);
         }
       }
       return poly_start;
@@ -2772,6 +2839,10 @@ var kage_export = (function (exports) {
     //functions for adjustment
 
     adjustTateParam(stroke, others) { // strokes
+      //for illegal strokes
+      if (stroke[1] >= 1000) return ~~(stroke[1] / 1000);
+      if (stroke[0] >= 100) return 0;
+      
       //(STROKETYPE.STRAIGHT || STROKETYPE.BENDING || STROKETYPE.VCURVE)
       if (stroke[3] != stroke[5]) return 0;
       var res = 0;
@@ -2787,6 +2858,10 @@ var kage_export = (function (exports) {
     }
 
     adjustUrokoParam(stroke, others) { // strokes
+      //for illegal strokes
+      if (stroke[2] >= 100) return ~~(stroke[2] / 100);
+      if (stroke[0] >= 100) return 0;
+
       //STROKETYPE.STRAIGHT && ENDTYPE.OPEN
       for (var k = 0; k < this.kAdjustUrokoLengthStep; k++) {
         var tx, ty, tlen;
@@ -2811,6 +2886,10 @@ var kage_export = (function (exports) {
     }
 
     adjustUroko2Param(stroke, others) { // strokes
+      //for illegal strokes
+      if (stroke[2] >= 100) return ~~(stroke[2] / 100);
+      if (stroke[0] >= 100) return 0;
+
       //STROKETYPE.STRAIGHT && ENDTYPE.OPEN && y1==y2
       var pressure = 0;
       for (let other of others) {
@@ -2829,7 +2908,11 @@ var kage_export = (function (exports) {
       return result;//a3 += res * 100;
     }
 
-    adjustHaneParam(epx, epy, others) { // adjust "Hane" (short line turning to the left)
+    adjustHaneParam(stroke, epx, epy, others) { // adjust "Hane" (short line turning to the left)
+      //for illegal strokes
+      if (stroke[2] >= 100) return ~~(stroke[2] / 100);
+      if (stroke[0] >= 100) return 0;
+
       //endPointX, endPointY
       //(STROKETYPE.STRAIGHT || STROKETYPE.CURVE || STROKETYPE.BEZIER) && ENDTYPE.TURN_LEFT
       var res = 0;
@@ -2851,6 +2934,10 @@ var kage_export = (function (exports) {
     }
 
     adjustMageParam(stroke, others) {
+      //for illegal strokes
+      if (stroke[2] >= 1000) return ~~(stroke[2] / 1000);
+      if (stroke[0] >= 100) return 0;
+
       //STROKETYPE.BENDING
       //applied only if y2=y3
       if (stroke[6] != stroke[8]) return 0;
@@ -2872,6 +2959,10 @@ var kage_export = (function (exports) {
     }
 
     adjustKirikuchiParam(stroke, others) { // connecting to other strokes.
+      //for illegal strokes
+      if (~~((stroke[1]%1000) / 100) == 1) return true;
+      if (stroke[0] >= 100) return false;
+
       //STROKETYPE.CURVE, STARTTYPE.CONNECTING_V
       if (stroke[3] > stroke[5] &&
         stroke[4] < stroke[6]) {
@@ -2888,6 +2979,11 @@ var kage_export = (function (exports) {
     }
     
     adjustKakatoParam(stroke, others) {
+      //for illegal strokes
+      if (stroke[2] >= 100) return ~~(stroke[2] / 100);
+      if (stroke[0] >= 100) return 0;
+
+      
       //if (STROKETYPE.STRAIGHT && (LOWER_LEFT_CORNER || LOWER_RIGHT_CORNER))
       for (var k = 0; k < this.kAdjustKakatoStep; k++) {
         if (isCrossBoxWithOthers(others, -1,
@@ -2910,7 +3006,10 @@ var kage_export = (function (exports) {
     MINCHO: 0,
     GOTHIC: 1,
   };
-
+  const KShotai = {
+      kMincho: 0,
+      kGothic: 1
+  };
   class Kage {
     constructor(type, size){
       this.kBuhin = new Buhin();
@@ -2945,6 +3044,18 @@ var kage_export = (function (exports) {
       var kageStrokes = this.getStrokes(data);
       return this.kFont.getPolygons(kageStrokes);
     }
+
+    makeGlyphSeparated2(data) {
+  		const strokesArrays = data.map((subdata) => this.getStrokes(subdata));
+  		return strokesArrays.map((strokesArray) => {
+  			const result = this.kFont.getPolygons(strokesArray);
+  			return result;
+  		});
+    }
+    makeGlyphSeparated(data) {
+      const strokesArrays = data.map((subdata) => this.getStrokes(subdata));
+      return this.kFont.getPolygonsSeparated(strokesArrays);
+  	}
     getStrokes(glyphData) { // strokes array
       var strokes = new Array();
       var textData = glyphData.split("$");
@@ -3024,10 +3135,21 @@ var kage_export = (function (exports) {
       }
       return result;
     }
-   
+
+    //for compatibility
+    getEachStrokes(glyphData) {
+      return this.getStrokes(glyphData);
+    }
+    getBox(strokes){
+      return getBoundingBox(strokes);
+    }
+    stretch(dp, sp, p, min, max){
+      return stretch(dp, sp, p, min, max);
+    }
   }
 
   exports.FONTTYPE = FONTTYPE;
+  exports.KShotai = KShotai;
   exports.Kage = Kage;
   exports.Polygons = Polygons;
 

@@ -22,5 +22,5 @@
   "devDependencies": {
     "rollup": "^2.58.3"
   },
-  "typings":"typings/index.d.ts"
+  "typings": "typings/index.d.ts"
 }
