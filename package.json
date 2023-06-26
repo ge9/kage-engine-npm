@@ -1,4 +1,5 @@
 {
+  "type" : "module",
   "name": "@ge9/kage-engine-2",
   "version": "0.0.1",
   "description": "An engine that generates glyph image file from KAGE data",

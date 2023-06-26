@@ -1,5 +1,6 @@
 export { Kage, FONTTYPE, KShotai } from "./lib/kage.js";
 export { Polygons } from "./lib/polygons.js";
+export { Polygon } from "./lib/polygon.js";
 //export const kage_export = {Kage: Kage, FONTTYPE: FONTTYPE, Polygons: Polygons};
 // Object.defineProperty(exports, "__esModule", { value: true });
 // var kage_1 = require("./lib/kage");
